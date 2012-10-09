@@ -11,17 +11,7 @@ class Fabrication::Schematic::Definition
   attr_accessor :klass
   def initialize(klass, &block)
     self.klass = klass
-    instance_eval(&block) if block_given?
-  end
-
-  def after_build(&block)
-    callbacks[:after_build] ||= []
-    callbacks[:after_build] << block
-  end
-
-  def after_create(&block)
-    callbacks[:after_create] ||= []
-    callbacks[:after_create] << block
+    Fabrication::Schematic::Evaluator.new(self, &block) if block_given?
   end
 
   def attribute(name)
@@ -86,9 +76,7 @@ class Fabrication::Schematic::Definition
     self.attributes = original.attributes.clone
   end
 
-  def init_with(*args)
-    args
-  end
+  def init_with(*args); args end
 
   def merge(overrides={}, &block)
     clone.tap do |schematic|
@@ -97,32 +85,6 @@ class Fabrication::Schematic::Definition
         schematic.append_or_update_attribute(name.to_sym, value)
       end
     end
-  end
-
-  def method_missing(method_name, *args, &block)
-    params = Fabrication::Support.extract_options!(args)
-    value = args.first
-    block = generate_value(method_name, params) if args.empty? && !block_given?
-    append_or_update_attribute(method_name, value, params, &block)
-  end
-
-  def on_init(&block)
-    callbacks[:on_init] = block
-  end
-
-  def initialize_with(&block)
-    callbacks[:initialize_with] = block
-  end
-
-  def transient(*field_names)
-    field_names.each do |field_name|
-      append_or_update_attribute(field_name, nil, transient: true)
-    end
-  end
-
-  def sequence(name=Fabrication::Sequencer::DEFAULT, start=nil, &block)
-    name = "#{self.klass.to_s.downcase.gsub(/::/, '_')}_#{name}"
-    Fabrication::Sequencer.sequence(name, start, &block)
   end
 
   private
