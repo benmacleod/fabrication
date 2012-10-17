@@ -77,8 +77,12 @@ module Fabrication
 
         parent_instance = parent
         unless klass.new.respond_to?("#{parent_class_name}=")
-          parent_class_name = parent_class_name.pluralize
-          parent_instance = [parent]
+          if klass.new.respond_to?("#{@parent_name}=")
+            parent_class_name = @parent_name
+          else
+            parent_class_name = parent_class_name.pluralize
+            parent_instance = [parent]
+          end
         end
 
         { parent_class_name => parent_instance }
